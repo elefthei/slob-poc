@@ -1,0 +1,2 @@
+2017/04/16 06:56:03 [emerg] 1#1: invalid host in upstream "register:8080/$http_deviceid" in /etc/nginx/conf.d/slob-nginx.conf:2
+2017/04/16 06:56:46 [emerg] 1#1: invalid host in upstream "register:8080/$http_deviceid" in /etc/nginx/conf.d/slob-nginx.conf:2

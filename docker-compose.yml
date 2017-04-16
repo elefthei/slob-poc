@@ -1,0 +1,19 @@
+version: '2'
+services:
+  slob-nginx:
+    image: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/logs:/var/log/nginx
+      - ./nginx/scripts:/scripts:ro
+    links:
+      - echo
+      - register
+  echo:
+    image: jmalloc/echo-server
+  register:
+    image: jmalloc/echo-server
+  dyndns:
+    image: mbentley/bind9
