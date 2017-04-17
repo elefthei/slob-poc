@@ -7,6 +7,7 @@ services:
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/logs:/var/log/nginx
+    dns: dyndns
     links:
       - echo
       - register
@@ -14,5 +15,8 @@ services:
     image: jmalloc/echo-server
   register:
     image: jmalloc/echo-server
+    links:
+      - dyndns
   dyndns:
     image: mbentley/bind9
+
