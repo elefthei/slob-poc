@@ -5,12 +5,12 @@ Sticky Load Balancer using DynDNS proof-of-concept.
 
 Building:
 ```
-docker-compose -f docker-compose.yml build
+docker-compose build
 ```
 
 Running:
 ```
-docker-compose -f docker-compose.yml up
+docker-compose up
 ```
 
 Usage:
