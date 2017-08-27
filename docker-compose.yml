@@ -5,16 +5,9 @@ services:
     build: .
     ports:
       - "3000:80"
-    dns: dyndns
     links:
-      - dyndns
       - echo
   echo:
     restart: always
     image: jmalloc/echo-server
-  dyndns:
-    restart: always
-    image: mbentley/bind9
-    logging:
-      driver: none
 
