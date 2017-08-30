@@ -1,9 +1,56 @@
-FROM alpine:3.5
+FROM debian:jessie
 
-RUN apk add --no-cache --virtual .build-deps nginx-mod-http-lua nginx-lua
-RUN mkdir -p /run/nginx
-COPY nginx/conf.d/nginx.conf /etc/nginx/conf.d/default.conf
-COPY nginx/lua/* /var/lib/nginx/
+RUN apt-get update && apt-get upgrade && apt-get install -y \
+    cmake \
+    git \
+    make \
+    gcc \
+    g++ \
+    vim \
+    sudo \
+    wget curl
 
-CMD ["nginx", "-g", "daemon off;"]
+# Install luajit-rocks
+RUN git clone https://github.com/torch/distro.git /usr/src/torch --recursive && \
+    cd /usr/src/torch && \
+    bash install-deps && \
+    ./install.sh
 
+ARG PCRE_VERSION="8.40"
+ARG NGINX_VERSION="1.11.2"
+
+RUN git clone https://github.com/simpl/ngx_devel_kit.git /usr/src/ngx-dev-kit && \
+    git clone https://github.com/openresty/lua-nginx-module.git /usr/src/lua-nginx-module && \
+    cd /usr/src && \
+    wget https://ftp.pcre.org/pub/pcre/pcre-${PCRE_VERSION}.tar.gz && \
+    tar -xzf pcre-${PCRE_VERSION}.tar.gz && \
+    wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
+    tar -xzf nginx-${NGINX_VERSION}.tar.gz && \
+    rm nginx-${NGINX_VERSION}.tar.gz && \
+    rm pcre-${PCRE_VERSION}.tar.gz
+
+# SYMlink to linluajit-5.1.so
+RUN ln -sf /usr/src/torch/install/lib/libluajit.so /usr/src/torch/install/lib/libluajit-5.1.so.2.1 && \
+    ln -sf /usr/src/torch/install/lib/libluajit.so /usr/src/torch/install/lib/libluajit-5.1.so.2 && \
+    ln -sf /usr/src/torch/install/lib/libluajit.so /usr/src/torch/install/lib/libluajit-5.1.so
+
+# Export environment variables manually
+ENV LUA_PATH='/root/.luarocks/share/lua/5.1/?.lua;/root/.luarocks/share/lua/5.1/?/init.lua;/usr/src/torch/install/share/lua/5.1/?.lua;/usr/src/torch/install/share/lua/5.1/?/init.lua;./?.lua;/usr/src/torch/install/share/luajit-2.1.0-beta1/?.lua;/usr/local/share/lua/5.1/?.lua;/usr/local/share/lua/5.1/?/init.lua'
+ENV LUA_CPATH='/root/.luarocks/lib/lua/5.1/?.so;/usr/src/torch/install/lib/lua/5.1/?.so;./?.so;/usr/local/lib/lua/5.1/?.so;/usr/local/lib/lua/5.1/loadall.so'
+ENV PATH=/usr/src/torch/install/bin:$PATH
+ENV LD_LIBRARY_PATH=/usr/src/torch/install/lib:$LD_LIBRARY_PATH
+ENV DYLD_LIBRARY_PATH=/usr/src/torch/install/lib:$DYLD_LIBRARY_PATH
+ENV LUA_CPATH='/usr/src/torch/install/lib/?.so;'$LUA_CPATH
+ENV LUAJIT_LIB='/usr/src/torch/install/lib/'
+ENV LUAJIT_INC='/usr/src/torch/install/include/'
+
+RUN cd /usr/src/nginx-${NGINX_VERSION} && \
+    ./configure \
+         --with-ld-opt="-Wl,-rpath,$LUAJIT_LIB" \
+         --with-cc-opt="-I$LUAJIT_INC" \
+         --with-pcre=/usr/src/pcre-${PCRE_VERSION} \
+         --with-pcre-jit \
+         --add-module=/usr/src/ngx-dev-kit \
+         --add-module=/usr/src/lua-nginx-module && \
+    make -j2 && \
+    make install
